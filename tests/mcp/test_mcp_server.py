@@ -54,6 +54,7 @@ class TestMCPServer:
             max_stops="NON_STOP",
             sort_by="DURATION",
             bags="1:0",
+            currency="EUR",
         )
 
         result = search_flights.fn(params)

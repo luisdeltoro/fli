@@ -1,8 +1,12 @@
+import sys
 from datetime import datetime, timedelta
 from unittest.mock import MagicMock
 
 import pytest
 
+# Ensure the command modules are imported so they appear in sys.modules.
+import fli.cli.commands.dates  # noqa: F401
+import fli.cli.commands.flights  # noqa: F401
 from fli.models import (
     Airline,
     Airport,
@@ -97,8 +101,8 @@ def mock_search_flights(monkeypatch):
             "total_price": 599.98,
         }
     ]
-    monkeypatch.setattr("fli.search.flights.SearchFlights.__new__", lambda cls: mock)
-    monkeypatch.setattr("fli.search.SearchFlights.__new__", lambda cls: mock)
+    mock_cls = MagicMock(return_value=mock)
+    monkeypatch.setattr(sys.modules["fli.cli.commands.flights"], "SearchFlights", mock_cls)
     return mock
 
 
@@ -106,8 +110,8 @@ def mock_search_flights(monkeypatch):
 def mock_search_dates(monkeypatch):
     """Mock SearchDates class."""
     mock = MagicMock()
-    monkeypatch.setattr("fli.search.dates.SearchDates.__new__", lambda cls: mock)
-    monkeypatch.setattr("fli.search.SearchDates.__new__", lambda cls: mock)
+    mock_cls = MagicMock(return_value=mock)
+    monkeypatch.setattr(sys.modules["fli.cli.commands.dates"], "SearchDates", mock_cls)
     return mock
 
 

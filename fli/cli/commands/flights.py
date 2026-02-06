@@ -33,6 +33,7 @@ def _search_flights_core(
     max_stops: str = "ANY",
     sort_by: str = "CHEAPEST",
     bags: str | None = None,
+    currency: str | None = None,
 ):
     """Core flight search functionality."""
     try:
@@ -77,15 +78,15 @@ def _search_flights_core(
         )
 
         # Perform search
-        search_client = SearchFlights()
+        search_client = SearchFlights(currency=currency)
         results = search_client.search(filters)
 
         if not results:
             typer.echo("No flights found.")
             raise typer.Exit(1)
 
-        # Display results
-        display_flight_results(results)
+        # Display results using API-detected currency, falling back to user-provided
+        display_flight_results(results, currency=search_client.currency or currency)
 
     except ParseError as e:
         typer.echo(f"Error: {str(e)}")
@@ -159,6 +160,13 @@ def flights(
             help="Bags filter as carry_on:checked (e.g., 1:0)",
         ),
     ] = None,
+    currency: Annotated[
+        str | None,
+        typer.Option(
+            "--currency",
+            help="Currency code (e.g., USD, EUR)",
+        ),
+    ] = None,
 ):
     """Search for flights on a specific date.
 
@@ -177,4 +185,5 @@ def flights(
         max_stops=max_stops,
         sort_by=sort_by,
         bags=bags,
+        currency=currency,
     )

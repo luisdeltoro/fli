@@ -4,7 +4,9 @@ This module provides the core flight search functionality, interfacing directly
 with Google Flights' API to find available flights and their details.
 """
 
+import base64
 import json
+import re
 from copy import deepcopy
 from datetime import datetime
 
@@ -31,9 +33,12 @@ class SearchFlights:
         "content-type": "application/x-www-form-urlencoded;charset=UTF-8",
     }
 
-    def __init__(self):
+    def __init__(self, currency: str | None = None):
         """Initialize the search client for flight searches."""
         self.client = get_client()
+        self.currency: str | None = None
+        if currency:
+            self.client.set_currency(currency)
 
     def search(
         self, filters: FlightSearchFilters, top_n: int = 5
@@ -67,6 +72,7 @@ class SearchFlights:
                 return None
 
             encoded_filters = json.loads(parsed)
+            self.currency = self._extract_response_currency(encoded_filters)
             flights_data = [
                 item
                 for i in [2, 3]
@@ -193,3 +199,16 @@ class SearchFlights:
 
         """
         return getattr(Airport, airport_code)
+
+    @staticmethod
+    def _extract_response_currency(data: list) -> str | None:
+        """Extract currency code from a base64-encoded protobuf in the response."""
+        try:
+            blob = data[30][1]
+            decoded = base64.b64decode(blob)
+            match = re.search(rb"\x1a\x03([A-Z]{3})", decoded)
+            if match:
+                return match.group(1).decode("ascii")
+        except (IndexError, TypeError, Exception):
+            pass
+        return None

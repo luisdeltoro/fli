@@ -186,6 +186,23 @@ def test_flights_with_bags(runner, mock_search_flights, mock_console):
     mock_search_flights.search.assert_called_once()
 
 
+def test_flights_with_currency(runner, mock_search_flights, mock_console):
+    """Test flights search with currency option."""
+    result = runner.invoke(
+        app,
+        [
+            "flights",
+            "JFK",
+            "LAX",
+            datetime.now().strftime("%Y-%m-%d"),
+            "--currency",
+            "EUR",
+        ],
+    )
+    assert result.exit_code == 0
+    mock_search_flights.search.assert_called_once()
+
+
 def test_round_trip_invalid_dates(runner, mock_search_flights, mock_console):
     """Test round-trip flights search with return date before outbound date."""
     outbound_date = datetime.now().strftime("%Y-%m-%d")

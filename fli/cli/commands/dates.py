@@ -151,6 +151,13 @@ def dates(
             callback=validate_time_range,
         ),
     ] = None,
+    currency: Annotated[
+        str | None,
+        typer.Option(
+            "--currency",
+            help="Currency code (e.g., USD, EUR)",
+        ),
+    ] = None,
 ):
     """Find the cheapest dates to fly between two airports.
 
@@ -205,7 +212,7 @@ def dates(
         )
 
         # Perform search
-        search_client = SearchDates()
+        search_client = SearchDates(currency=currency)
         results = search_client.search(filters)
 
         if not results:
@@ -240,8 +247,8 @@ def dates(
         if sort_by_price:
             results.sort(key=lambda x: x.price)
 
-        # Display results
-        display_date_results(results, trip_type)
+        # Display results using API-detected currency, falling back to user-provided
+        display_date_results(results, trip_type, currency=search_client.currency or currency)
 
     except ParseError as e:
         typer.echo(f"Error: {str(e)}")

@@ -18,6 +18,27 @@ from fli.core.parsers import parse_airlines as core_parse_airlines
 from fli.core.parsers import parse_max_stops as core_parse_max_stops
 from fli.models import Airline, Airport, MaxStops, TripType
 
+CURRENCY_SYMBOLS = {
+    "USD": "$",
+    "EUR": "€",
+    "GBP": "£",
+    "JPY": "¥",
+    "CNY": "¥",
+    "KRW": "₩",
+    "INR": "₹",
+    "TRY": "₺",
+    "THB": "฿",
+    "PLN": "zł",
+    "BRL": "R$",
+}
+
+
+def _currency_symbol(currency: str | None) -> str:
+    """Return the symbol for a currency code, or the code itself as fallback."""
+    if currency is None:
+        return "$"
+    return CURRENCY_SYMBOLS.get(currency.upper(), currency.upper() + " ")
+
 
 def validate_date(ctx: Context, param: Parameter, value: str) -> str | None:
     """Validate date format for typer callbacks."""
@@ -130,14 +151,16 @@ def format_duration(minutes: int) -> str:
     return f"{hours}h {mins}m"
 
 
-def display_flight_results(flights: list):
+def display_flight_results(flights: list, currency: str | None = None):
     """Display flight results in a beautiful format.
 
     Args:
         flights: List of either FlightResult objects (one-way)
         or tuples of (outbound, return) FlightResults (round-trip)
+        currency: Currency code for display (e.g., "USD", "EUR")
 
     """
+    sym = _currency_symbol(currency)
     if not flights:
         console.print(Panel("No flights found matching your criteria", style="red"))
         return
@@ -154,11 +177,11 @@ def display_flight_results(flights: list):
         total_price = flight_segments[0].price
         if is_round_trip:
             total_price += flight_segments[1].price
-        table.add_row("Total Price", f"${total_price:,.2f}")
+        table.add_row("Total Price", f"{sym}{total_price:,.2f}")
 
         if is_round_trip:
-            table.add_row("Outbound Price", f"${flight_segments[0].price:,.2f}")
-            table.add_row("Return Price", f"${flight_segments[1].price:,.2f}")
+            table.add_row("Outbound Price", f"{sym}{flight_segments[0].price:,.2f}")
+            table.add_row("Return Price", f"{sym}{flight_segments[1].price:,.2f}")
 
         total_duration = sum(flight.duration for flight in flight_segments)
         table.add_row("Total Duration", format_duration(total_duration))
@@ -210,8 +233,9 @@ def display_flight_results(flights: list):
         console.print()
 
 
-def display_date_results(dates: list, trip_type: TripType):
+def display_date_results(dates: list, trip_type: TripType, currency: str | None = None):
     """Display date search results with sparkline chart and table."""
+    sym = _currency_symbol(currency)
     if not dates:
         console.print(Panel("No flights found for these dates", style="red"))
         return
@@ -228,7 +252,7 @@ def display_date_results(dates: list, trip_type: TripType):
     plt.plot(prices, marker="braille")
     plt.title("Price Trend")
     plt.xlabel("Date")
-    plt.ylabel("Price ($)")
+    plt.ylabel(f"Price ({sym})")
 
     # Set x-axis labels (show subset if too many dates)
     if len(date_labels) <= 10:
@@ -259,7 +283,7 @@ def display_date_results(dates: list, trip_type: TripType):
             table.add_row(
                 date_price.date[0].strftime("%Y-%m-%d"),
                 date_price.date[0].strftime("%A"),
-                f"${date_price.price:,.2f}",
+                f"{sym}{date_price.price:,.2f}",
             )
         else:
             table.add_row(
@@ -267,7 +291,7 @@ def display_date_results(dates: list, trip_type: TripType):
                 date_price.date[0].strftime("%A"),
                 date_price.date[1].strftime("%Y-%m-%d"),
                 date_price.date[1].strftime("%A"),
-                f"${date_price.price:,.2f}",
+                f"{sym}{date_price.price:,.2f}",
             )
 
     console.print(table)
