@@ -8,6 +8,7 @@ This module provides a robust HTTP client that handles:
 - Error handling
 """
 
+import json
 from typing import Any
 
 from curl_cffi import requests
@@ -33,6 +34,12 @@ class Client:
         """Clean up client session on deletion."""
         if hasattr(self, "_client"):
             self._client.close()
+
+    def set_currency(self, currency: str) -> None:
+        """Set the currency for API requests via the locale header."""
+        self._client.headers["x-goog-ext-259736195-jspb"] = json.dumps(
+            ["en-US", "US", currency, 1, None, [-120], None, None, 1, []]
+        )
 
     @sleep_and_retry
     @limits(calls=10, period=1)

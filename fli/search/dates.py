@@ -5,7 +5,9 @@ It uses Google Flights' calendar view API to find the best prices for each date.
 It is intended to be used for finding the cheapest dates to fly, not the cheapest flights.
 """
 
+import base64
 import json
+import re
 from datetime import datetime, timedelta
 
 from pydantic import BaseModel
@@ -35,9 +37,12 @@ class SearchDates:
     }
     MAX_DAYS_PER_SEARCH = 61
 
-    def __init__(self):
+    def __init__(self, currency: str | None = None):
         """Initialize the search client for date-based searches."""
         self.client = get_client()
+        self.currency: str | None = None
+        if currency:
+            self.client.set_currency(currency)
 
     def search(self, filters: DateSearchFilters) -> list[DatePrice] | None:
         """Search for flight prices across a date range and search parameters.
@@ -126,6 +131,7 @@ class SearchDates:
                 return None
 
             data = json.loads(parsed)
+            self.currency = self._extract_response_currency(data)
             dates_data = [
                 DatePrice(
                     date=self.__parse_date(item, filters.trip_type),
@@ -180,4 +186,20 @@ class SearchDates:
         except (IndexError, TypeError, ValueError):
             pass
 
+        return None
+
+    @staticmethod
+    def _extract_response_currency(data: list) -> str | None:
+        """Extract currency code from a base64-encoded protobuf in the date price items."""
+        try:
+            # Currency is in the protobuf blob of the first date price item:
+            # data[-1][0][2][1] is a base64-encoded protobuf containing the currency
+            first_item = data[-1][0]
+            blob = first_item[2][1]
+            decoded = base64.b64decode(blob)
+            match = re.search(rb"\x1a\x03([A-Z]{3})", decoded)
+            if match:
+                return match.group(1).decode("ascii")
+        except (IndexError, TypeError, Exception):
+            pass
         return None

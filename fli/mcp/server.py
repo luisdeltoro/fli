@@ -241,6 +241,7 @@ class FlightSearchParams(BaseModel):
         ge=1,
         description="Number of adult passengers",
     )
+    currency: str | None = Field(None, description="Currency code for prices (e.g., 'USD', 'EUR')")
 
 
 class DateSearchParams(BaseModel):
@@ -273,6 +274,7 @@ class DateSearchParams(BaseModel):
         ge=1,
         description="Number of adult passengers",
     )
+    currency: str | None = Field(None, description="Currency code for prices (e.g., 'USD', 'EUR')")
 
 
 # =============================================================================
@@ -293,13 +295,16 @@ def _serialize_flight_leg(leg: Any) -> dict[str, Any]:
     }
 
 
-def _serialize_flight_result(flight: Any, is_round_trip: bool = False) -> dict[str, Any]:
+def _serialize_flight_result(
+    flight: Any, is_round_trip: bool = False, currency: str | None = None
+) -> dict[str, Any]:
     """Serialize a flight result (or round-trip pair) to a dictionary."""
+    cur = currency or CONFIG.default_currency
     if is_round_trip and isinstance(flight, tuple):
         outbound, return_flight = flight
         return {
             "price": outbound.price + return_flight.price,
-            "currency": CONFIG.default_currency,
+            "currency": cur,
             "legs": [
                 *[_serialize_flight_leg(leg) for leg in outbound.legs],
                 *[_serialize_flight_leg(leg) for leg in return_flight.legs],
@@ -308,17 +313,17 @@ def _serialize_flight_result(flight: Any, is_round_trip: bool = False) -> dict[s
     else:
         return {
             "price": flight.price,
-            "currency": CONFIG.default_currency,
+            "currency": cur,
             "legs": [_serialize_flight_leg(leg) for leg in flight.legs],
         }
 
 
-def _serialize_date_result(date_result: Any) -> dict[str, Any]:
+def _serialize_date_result(date_result: Any, currency: str | None = None) -> dict[str, Any]:
     """Serialize a date price result to a dictionary."""
     return {
         "date": date_result.date,
         "price": date_result.price,
-        "currency": CONFIG.default_currency,
+        "currency": currency or CONFIG.default_currency,
         "return_date": getattr(date_result, "return_date", None),
     }
 
@@ -364,7 +369,7 @@ def _execute_flight_search(params: FlightSearchParams) -> dict[str, Any]:
         )
 
         # Perform search
-        search_client = SearchFlights()
+        search_client = SearchFlights(currency=params.currency)
         flights = search_client.search(filters)
 
         if not flights:
@@ -372,7 +377,10 @@ def _execute_flight_search(params: FlightSearchParams) -> dict[str, Any]:
 
         # Serialize results
         is_round_trip = trip_type == TripType.ROUND_TRIP
-        flight_results = [_serialize_flight_result(f, is_round_trip) for f in flights]
+        detected_currency = search_client.currency
+        flight_results = [
+            _serialize_flight_result(f, is_round_trip, currency=detected_currency) for f in flights
+        ]
 
         if CONFIG.max_results:
             flight_results = flight_results[: CONFIG.max_results]
@@ -431,7 +439,7 @@ def _execute_date_search(params: DateSearchParams) -> dict[str, Any]:
         )
 
         # Perform search
-        search_client = SearchDates()
+        search_client = SearchDates(currency=params.currency)
         dates = search_client.search(filters)
 
         if not dates:
@@ -447,7 +455,8 @@ def _execute_date_search(params: DateSearchParams) -> dict[str, Any]:
             dates.sort(key=lambda x: x.price)
 
         # Serialize results
-        date_results = [_serialize_date_result(d) for d in dates]
+        detected_currency = search_client.currency
+        date_results = [_serialize_date_result(d, currency=detected_currency) for d in dates]
 
         if CONFIG.max_results:
             date_results = date_results[: CONFIG.max_results]
@@ -511,6 +520,10 @@ def search_flights(
         int | None,
         Field(description="Number of adult passengers", ge=1),
     ] = None,
+    currency: Annotated[
+        str | None,
+        Field(description="Currency code for prices (e.g., 'USD', 'EUR')"),
+    ] = None,
 ) -> dict[str, Any]:
     """Search for flights between two airports on a specific date.
 
@@ -529,6 +542,7 @@ def search_flights(
         max_stops=max_stops,
         sort_by=sort_by,
         passengers=passengers or CONFIG.default_passengers,
+        currency=currency,
     )
     return _execute_flight_search(params)
 
@@ -585,6 +599,10 @@ def search_dates(
         int | None,
         Field(description="Number of adult passengers", ge=1),
     ] = None,
+    currency: Annotated[
+        str | None,
+        Field(description="Currency code for prices (e.g., 'USD', 'EUR')"),
+    ] = None,
 ) -> dict[str, Any]:
     """Find the cheapest travel dates between two airports within a date range.
 
@@ -605,6 +623,7 @@ def search_dates(
         departure_window=effective_departure_window,
         sort_by_price=sort_by_price,
         passengers=passengers or CONFIG.default_passengers,
+        currency=currency,
     )
     return _execute_date_search(params)
 
