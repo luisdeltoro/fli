@@ -2,6 +2,7 @@ from datetime import datetime, timedelta
 from unittest.mock import MagicMock
 
 import pytest
+from pydantic import ValidationError
 from typer import BadParameter
 
 from fli.cli.enums import DayOfWeek
@@ -14,7 +15,8 @@ from fli.cli.utils import (
     validate_date,
     validate_time_range,
 )
-from fli.models import Airline, Airport, FlightLeg, FlightResult, MaxStops
+from fli.core.parsers import ParseError, parse_bags
+from fli.models import Airline, Airport, BagsInfo, FlightLeg, FlightResult, MaxStops
 from fli.models.google_flights.base import TripType
 from fli.search.dates import DatePrice
 
@@ -186,3 +188,39 @@ def test_filter_dates_by_days():
     # No day filters should return all dates
     result = filter_dates_by_days(dates, [], TripType.ONE_WAY)
     assert len(result) == 2
+
+
+def test_parse_bags_carry_on_only():
+    """Test parsing bags with carry-on only shorthand."""
+    result = parse_bags("1")
+    assert result == BagsInfo(carry_on=1, checked=0)
+
+
+def test_parse_bags_both():
+    """Test parsing bags with carry_on:checked format."""
+    result = parse_bags("1:2")
+    assert result == BagsInfo(carry_on=1, checked=2)
+
+
+def test_parse_bags_zero():
+    """Test parsing bags with zero values."""
+    result = parse_bags("0:0")
+    assert result == BagsInfo(carry_on=0, checked=0)
+
+
+def test_parse_bags_checked_only():
+    """Test parsing bags with checked only."""
+    result = parse_bags("0:1")
+    assert result == BagsInfo(carry_on=0, checked=1)
+
+
+def test_parse_bags_invalid():
+    """Test parsing bags with invalid value."""
+    with pytest.raises(ParseError):
+        parse_bags("abc")
+
+
+def test_parse_bags_negative():
+    """Test parsing bags with negative value."""
+    with pytest.raises((ParseError, ValidationError)):
+        parse_bags("-1:0")

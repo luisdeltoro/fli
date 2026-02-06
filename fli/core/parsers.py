@@ -7,7 +7,9 @@ to convert user input into domain model objects.
 from enum import Enum
 from typing import TypeVar
 
-from fli.models import Airline, Airport, MaxStops, SeatType, SortBy
+from pydantic import ValidationError
+
+from fli.models import Airline, Airport, BagsInfo, MaxStops, SeatType, SortBy
 
 T = TypeVar("T", bound=Enum)
 
@@ -183,6 +185,43 @@ def parse_sort_by(sort_by: str) -> SortBy:
         valid_values = [m.name for m in SortBy]
         raise ParseError(
             f"Invalid sort_by value: '{sort_by}'. Valid values: {', '.join(valid_values)}"
+        ) from e
+
+
+def parse_bags(bags: str) -> BagsInfo:
+    """Parse a bags string like '1:0' (carry_on:checked) into BagsInfo.
+
+    Accepts formats:
+    - "1" → 1 carry-on, 0 checked
+    - "1:0" → 1 carry-on, 0 checked
+    - "1:1" → 1 carry-on, 1 checked
+    - "0:2" → 0 carry-on, 2 checked
+
+    Args:
+        bags: Bags value as 'carry_on' or 'carry_on:checked'
+
+    Returns:
+        BagsInfo with parsed values
+
+    Raises:
+        ParseError: If the value is not valid
+
+    """
+    try:
+        parts = bags.split(":")
+        if len(parts) == 1:
+            carry_on = int(parts[0])
+            checked = 0
+        elif len(parts) == 2:
+            carry_on = int(parts[0])
+            checked = int(parts[1])
+        else:
+            raise ValueError("Too many parts")
+
+        return BagsInfo(carry_on=carry_on, checked=checked)
+    except (ValueError, ValidationError) as e:
+        raise ParseError(
+            f"Invalid bags value: '{bags}'. Expected format: 'carry_on:checked' (e.g., '1:0')"
         ) from e
 
 

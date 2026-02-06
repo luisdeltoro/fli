@@ -88,6 +88,7 @@ class SearchDates:
                 from_date=current_from.strftime("%Y-%m-%d"),
                 to_date=current_to.strftime("%Y-%m-%d"),
                 duration=filters.duration,
+                bags=filters.bags,
             )
 
             chunk_results = self._search_chunk(chunk_filters)

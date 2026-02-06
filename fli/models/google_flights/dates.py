@@ -14,6 +14,7 @@ from pydantic import (
 from fli.models.airline import Airline
 from fli.models.airport import Airport
 from fli.models.google_flights.base import (
+    BagsInfo,
     FlightSegment,
     LayoverRestrictions,
     MaxStops,
@@ -42,6 +43,7 @@ class DateSearchFilters(BaseModel):
     airlines: list[Airline] | None = None
     max_duration: PositiveInt | None = None
     layover_restrictions: LayoverRestrictions | None = None
+    bags: BagsInfo | None = None
     from_date: str
     to_date: str
     duration: PositiveInt | None = None
@@ -248,7 +250,7 @@ class DateSearchFilters(BaseModel):
                 [None, self.price_limit.max_price] if self.price_limit else None,
                 None,  # placeholder
                 None,  # placeholder
-                None,  # placeholder
+                [self.bags.carry_on, self.bags.checked] if self.bags else None,  # bags
                 None,  # placeholder
                 None,  # placeholder
                 formatted_segments,

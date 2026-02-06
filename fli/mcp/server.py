@@ -33,6 +33,7 @@ from fli.core import (
     build_flight_segments,
     build_time_restrictions,
     parse_airlines,
+    parse_bags,
     parse_cabin_class,
     parse_max_stops,
     parse_sort_by,
@@ -236,6 +237,9 @@ class FlightSearchParams(BaseModel):
         CONFIG.default_sort_by,
         description="Sort results by: CHEAPEST, DURATION, DEPARTURE_TIME, or ARRIVAL_TIME",
     )
+    bags: str | None = Field(
+        None, description="Bags filter as carry_on:checked (e.g., '1:0' for 1 carry-on, 0 checked)"
+    )
     passengers: int = Field(
         CONFIG.default_passengers,
         ge=1,
@@ -268,6 +272,9 @@ class DateSearchParams(BaseModel):
         None, description="Preferred departure time window in 'HH-HH' 24h format (e.g., '6-20')"
     )
     sort_by_price: bool = Field(False, description="Sort results by price (lowest first)")
+    bags: str | None = Field(
+        None, description="Bags filter as carry_on:checked (e.g., '1:0' for 1 carry-on, 0 checked)"
+    )
     passengers: int = Field(
         CONFIG.default_passengers,
         ge=1,
@@ -343,6 +350,9 @@ def _execute_flight_search(params: FlightSearchParams) -> dict[str, Any]:
         departure_window = params.departure_window or CONFIG.default_departure_window
         time_restrictions = build_time_restrictions(departure_window) if departure_window else None
 
+        # Parse bags
+        bags = parse_bags(params.bags) if params.bags else None
+
         # Build flight segments
         segments, trip_type = build_flight_segments(
             origin=origin,
@@ -360,6 +370,7 @@ def _execute_flight_search(params: FlightSearchParams) -> dict[str, Any]:
             stops=max_stops,
             seat_type=cabin_class,
             airlines=airlines,
+            bags=bags,
             sort_by=sort_by,
         )
 
@@ -407,6 +418,9 @@ def _execute_date_search(params: DateSearchParams) -> dict[str, Any]:
         departure_window = params.departure_window or CONFIG.default_departure_window
         time_restrictions = build_time_restrictions(departure_window) if departure_window else None
 
+        # Parse bags
+        bags = parse_bags(params.bags) if params.bags else None
+
         # Build flight segments
         segments, trip_type = build_date_search_segments(
             origin=origin,
@@ -425,6 +439,7 @@ def _execute_date_search(params: DateSearchParams) -> dict[str, Any]:
             stops=max_stops,
             seat_type=cabin_class,
             airlines=airlines,
+            bags=bags,
             from_date=params.start_date,
             to_date=params.end_date,
             duration=params.trip_duration if params.is_round_trip else None,
@@ -507,6 +522,10 @@ def search_flights(
         str,
         Field(description="Sort by: CHEAPEST, DURATION, DEPARTURE_TIME, ARRIVAL_TIME"),
     ] = CONFIG.default_sort_by,
+    bags: Annotated[
+        str | None,
+        Field(description="Bags filter as carry_on:checked (e.g., '1:0')"),
+    ] = None,
     passengers: Annotated[
         int | None,
         Field(description="Number of adult passengers", ge=1),
@@ -528,6 +547,7 @@ def search_flights(
         cabin_class=cabin_class,
         max_stops=max_stops,
         sort_by=sort_by,
+        bags=bags,
         passengers=passengers or CONFIG.default_passengers,
     )
     return _execute_flight_search(params)
@@ -581,6 +601,10 @@ def search_dates(
         bool,
         Field(description="Sort results by price (lowest first)"),
     ] = False,
+    bags: Annotated[
+        str | None,
+        Field(description="Bags filter as carry_on:checked (e.g., '1:0')"),
+    ] = None,
     passengers: Annotated[
         int | None,
         Field(description="Number of adult passengers", ge=1),
@@ -604,6 +628,7 @@ def search_dates(
         max_stops=max_stops,
         departure_window=effective_departure_window,
         sort_by_price=sort_by_price,
+        bags=bags,
         passengers=passengers or CONFIG.default_passengers,
     )
     return _execute_date_search(params)

@@ -107,6 +107,13 @@ class PassengerInfo(BaseModel):
     infants_on_lap: NonNegativeInt = 0
 
 
+class BagsInfo(BaseModel):
+    """Bags filter configuration for flight search."""
+
+    carry_on: NonNegativeInt = 0
+    checked: NonNegativeInt = 0
+
+
 class PriceLimit(BaseModel):
     """Maximum price constraint for flight search."""
 

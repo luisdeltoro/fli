@@ -53,6 +53,7 @@ class TestMCPServer:
             cabin_class="BUSINESS",
             max_stops="NON_STOP",
             sort_by="DURATION",
+            bags="1:0",
         )
 
         result = search_flights.fn(params)
@@ -241,3 +242,16 @@ class TestMCPServer:
         assert params.cabin_class == "ECONOMY"  # default
         assert params.max_stops == "ANY"  # default
         assert params.sort_by_price is False  # default
+
+    def test_invalid_bags(self):
+        """Test error handling for invalid bags parameter."""
+        params = FlightSearchParams(
+            origin="JFK",
+            destination="LHR",
+            departure_date=get_future_date(30),
+            bags="invalid",
+        )
+        result = search_flights.fn(params)
+        assert isinstance(result, dict)
+        assert result["success"] is False
+        assert "bags" in result["error"].lower()
