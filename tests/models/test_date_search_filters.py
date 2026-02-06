@@ -5,6 +5,7 @@ import pytest
 from fli.models import (
     Airline,
     Airport,
+    BagsInfo,
     DateSearchFilters,
     FlightSegment,
     LayoverRestrictions,
@@ -29,6 +30,8 @@ FROM_DATE_2 = get_future_date(10)
 TO_DATE_2 = get_future_date(55)
 FROM_DATE_3 = get_future_date(5)
 TO_DATE_3 = get_future_date(70)
+FROM_DATE_4 = get_future_date(15)
+TO_DATE_4 = get_future_date(45)
 
 TEST_CASES = [
     {
@@ -249,6 +252,74 @@ TEST_CASES = [
             [
                 FROM_DATE_3,
                 TO_DATE_3,
+            ],
+        ],
+    },
+    {
+        "name": "Test 4: Date Search with Bags Filter",
+        "search": DateSearchFilters(
+            passenger_info=PassengerInfo(
+                adults=1,
+                children=0,
+                infants_in_seat=0,
+                infants_on_lap=0,
+            ),
+            flight_segments=[
+                FlightSegment(
+                    departure_airport=[[Airport.PHX, 0]],
+                    arrival_airport=[[Airport.SFO, 0]],
+                    time_restrictions=None,
+                    travel_date=TRAVEL_DATE,
+                )
+            ],
+            stops=MaxStops.NON_STOP,
+            bags=BagsInfo(carry_on=1, checked=2),
+            from_date=FROM_DATE_4,
+            to_date=TO_DATE_4,
+        ),
+        "formatted": [
+            None,
+            [
+                None,
+                None,
+                2,
+                None,
+                [],
+                1,
+                [1, 0, 0, 0],
+                None,
+                None,
+                None,
+                [1, 2],
+                None,
+                None,
+                [
+                    [
+                        [[["PHX", 0]]],
+                        [[["SFO", 0]]],
+                        None,
+                        1,
+                        None,
+                        None,
+                        TRAVEL_DATE,
+                        None,
+                        None,
+                        None,
+                        None,
+                        None,
+                        None,
+                        None,
+                        3,
+                    ]
+                ],
+                None,
+                None,
+                None,
+                1,
+            ],
+            [
+                FROM_DATE_4,
+                TO_DATE_4,
             ],
         ],
     },

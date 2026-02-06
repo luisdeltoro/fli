@@ -1,4 +1,5 @@
 from .base import (
+    BagsInfo,
     FlightLeg,
     FlightResult,
     FlightSegment,
@@ -17,6 +18,7 @@ from .flights import FlightSearchFilters
 __all__ = [
     "Airline",
     "Airport",
+    "BagsInfo",
     "DateSearchFilters",
     "FlightLeg",
     "FlightResult",

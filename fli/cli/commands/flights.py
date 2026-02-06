@@ -8,6 +8,7 @@ from fli.cli.utils import display_flight_results, validate_date, validate_time_r
 from fli.core import (
     build_flight_segments,
     parse_airlines,
+    parse_bags,
     parse_cabin_class,
     parse_max_stops,
     parse_sort_by,
@@ -31,6 +32,7 @@ def _search_flights_core(
     cabin_class: str = "ECONOMY",
     max_stops: str = "ANY",
     sort_by: str = "CHEAPEST",
+    bags: str | None = None,
 ):
     """Core flight search functionality."""
     try:
@@ -41,6 +43,7 @@ def _search_flights_core(
         stops = parse_max_stops(max_stops)
         parsed_airlines = parse_airlines(airlines)
         sort = parse_sort_by(sort_by)
+        parsed_bags = parse_bags(bags) if bags else None
 
         # Build time restrictions from tuple
         time_restrictions = None
@@ -69,6 +72,7 @@ def _search_flights_core(
             stops=stops,
             seat_type=seat_type,
             airlines=parsed_airlines,
+            bags=parsed_bags,
             sort_by=sort,
         )
 
@@ -147,6 +151,14 @@ def flights(
             help="Sort results by (CHEAPEST, DURATION, DEPARTURE_TIME, ARRIVAL_TIME)",
         ),
     ] = "CHEAPEST",
+    bags: Annotated[
+        str | None,
+        typer.Option(
+            "--bags",
+            "-b",
+            help="Bags filter as carry_on:checked (e.g., 1:0)",
+        ),
+    ] = None,
 ):
     """Search for flights on a specific date.
 
@@ -164,4 +176,5 @@ def flights(
         cabin_class=cabin_class,
         max_stops=max_stops,
         sort_by=sort_by,
+        bags=bags,
     )

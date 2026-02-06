@@ -5,6 +5,7 @@ import pytest
 from fli.models import (
     Airline,
     Airport,
+    BagsInfo,
     FlightSearchFilters,
     FlightSegment,
     LayoverRestrictions,
@@ -243,6 +244,72 @@ TEST_CASES = [
             2,
         ],
         "encoded": None,  # Dynamic date makes encoded string non-deterministic
+    },
+    {
+        "name": "Test 4: Flight Search with Bags Filter",
+        "search": FlightSearchFilters(
+            passenger_info=PassengerInfo(
+                adults=1,
+                children=0,
+                infants_in_seat=0,
+                infants_on_lap=0,
+            ),
+            flight_segments=[
+                FlightSegment(
+                    departure_airport=[[Airport.PHX, 0]],
+                    arrival_airport=[[Airport.SFO, 0]],
+                    travel_date=TRAVEL_DATE,
+                )
+            ],
+            stops=MaxStops.NON_STOP,
+            bags=BagsInfo(carry_on=1, checked=0),
+        ),
+        "formatted": [
+            [],
+            [
+                None,
+                None,
+                2,
+                None,
+                [],
+                1,
+                [1, 0, 0, 0],
+                None,
+                None,
+                None,
+                [1, 0],
+                None,
+                None,
+                [
+                    [
+                        [[["PHX", 0]]],
+                        [[["SFO", 0]]],
+                        None,
+                        1,
+                        None,
+                        None,
+                        TRAVEL_DATE,
+                        None,
+                        None,
+                        None,
+                        None,
+                        None,
+                        None,
+                        None,
+                        3,
+                    ]
+                ],
+                None,
+                None,
+                None,
+                1,
+            ],
+            0,
+            0,
+            0,
+            2,
+        ],
+        "encoded": None,
     },
 ]
 
