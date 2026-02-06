@@ -152,7 +152,7 @@ class FliMCP(FastMCP):
 
     async def list_tools(self) -> list[Tool]:
         """List all available tools with annotations."""
-        tools = self._tool_manager.list_tools()
+        tools_dict = await self._tool_manager.get_tools()
         return [
             Tool(
                 name=info.name,
@@ -160,7 +160,7 @@ class FliMCP(FastMCP):
                 inputSchema=info.parameters,
                 annotations=self._tool_annotations.get(info.name),
             )
-            for info in tools
+            for info in tools_dict.values()
         ]
 
     def add_prompt(
